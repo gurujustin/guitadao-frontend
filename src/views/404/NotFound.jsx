@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <div id="not-found">
       <div className="not-found-header">
-        <a href="https://guitadao.finance" target="_blank">
+        <a href="https://guitadao.com" target="_blank">
           <img className="branding-header-icon" src={GuitaIcon} alt="GuitaDAO" />
         </a>
 
