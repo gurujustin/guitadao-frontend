@@ -16,16 +16,13 @@ query {
     treasuryMarketValue
     nextEpochRebase
     nextDistributedGuita
-    treasuryDaiMarketValue
-    treasuryDaiRiskFreeValue
+    treasuryDAIMarketValue
+    treasuryDAIRiskFreeValue
     treasuryUsdcMarketValue
     treasuryUsdcRiskFreeValue
-    treasuryWFTMMarketValue
-    treasuryMIMRiskFreeValue
-    treasuryMIMMarketValue
     currentAPY
     runwayCurrent
-    treasuryGuitaDaiPOL
+    treasuryGuitaDAIPOL
     treasuryGuitaUsdcPOL
   }
 }

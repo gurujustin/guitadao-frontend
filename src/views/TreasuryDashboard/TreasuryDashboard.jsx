@@ -62,6 +62,43 @@ function TreasuryDashboard() {
     return state.app.marketPrice * state.app.currentIndex;
   });
 
+  useEffect(() => {
+    apollo(treasuryDataQuery).then(r => {
+      let metrics = r?.data?.protocolMetrics.map(entry =>
+        Object.entries(entry).reduce((obj, [key, value]) => ((obj[key] = parseFloat(value)), obj), {}),
+      );
+        
+      console.log('debug', metrics)
+      let staked = r?.data?.protocolMetrics.map(entry => ({
+        staked: (parseFloat(entry.sGuitaCirculatingSupply) / parseFloat(entry.guitaCirculatingSupply)) * 100,
+        timestamp: entry.timestamp,
+      }));
+
+      if (staked) {
+        staked = staked.filter(pm => pm.staked < 100);
+        setStaked(staked);
+      }
+
+      if (metrics) {
+        metrics = metrics.filter(pm => pm.treasuryMarketValue > 0);
+        setData(metrics);
+        const runway = metrics.filter(pm => (pm.runwayCurrent > 5 && pm.runwayCurrent < 2000));
+        setRunway(runway);
+      }
+    });
+
+    apollo(rebasesV1DataQuery).then(r => {
+      let apy = r?.data?.rebases.map(entry => ({
+        apy: Math.pow(parseFloat(entry.percentage) + 1, 365 * 3) * 100,
+        timestamp: entry.timestamp - (entry.timestamp % (3600 * 4)),
+      }));
+      if (apy) {
+        apy = apy.filter(pm => pm.apy < 5000000);
+        setApy(apy);
+      }
+    });
+  }, []);
+
   return (
     <div id="treasury-dashboard-view" className={`${smallerScreen && "smaller"} ${verySmallScreen && "very-small"}`}>
       <Container
@@ -146,6 +183,142 @@ function TreasuryDashboard() {
             </Box>
           </Paper>
         </Box>
+        <Zoom in={true}>
+          <Grid container spacing={2} className="data-grid">
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="area"
+                  data={data}
+                  dataKey={["totalValueLocked"]}
+                  stopColor={[["#768299", "#98B3E9"]]}
+                  headerText="Total Value Deposited"
+                  headerSubText={`${data && formatCurrency(data[0].totalValueLocked)}`}
+                  bulletpointColors={bulletpoints.tvl}
+                  itemNames={tooltipItems.tvl}
+                  itemType={itemType.dollar}
+                  infoTooltipMessage={tooltipInfoMessages.tvl}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="stack"
+                  data={data}
+                  dataKey={[
+                    "treasuryDAIMarketValue",
+                    "treasuryUsdcMarketValue",
+                  ]}
+                  stopColor={[
+                    ["#F5AC37", "#EA9276"],
+                    ["#768299", "#98B3E9"],
+                    ["#8351ff", "#b151ff"],
+                    ["#c6c6c6", "#545454"],
+                    ["#ffffff", "#d5d5d5"],
+                    ["#22d5e7", "#18919d"],
+                  ]}
+                  headerText="Market Value of Treasury Assets"
+                  headerSubText={`${data && formatCurrency(data[0].treasuryMarketValue)}`}
+                  bulletpointColors={bulletpoints.coin}
+                  itemNames={tooltipItems.coin}
+                  itemType={itemType.dollar}
+                  infoTooltipMessage={tooltipInfoMessages.mvt}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="stack"
+                  data={data}
+                  format="currency"
+                  dataKey={[
+                    "treasuryDAIRiskFreeValue",
+                    "treasuryUsdcRiskFreeValue",
+                  ]}
+                  stopColor={[
+                    ["#F5AC37", "#EA9276"],
+                    ["#768299", "#98B3E9"],
+                    ["#8351ff", "#b151ff"],
+                    ["#c6c6c6", "#545454"],
+                    ["#ffffff", "#d5d5d5"],
+                    ["#22d5e7", "#18919d"],
+                  ]}
+                  headerText="Risk Free Value of Treasury Assets"
+                  headerSubText={`${data && formatCurrency(data[0].treasuryRiskFreeValue)}`}
+                  bulletpointColors={bulletpoints.coin}
+                  itemNames={tooltipItems.coin}
+                  itemType={itemType.dollar}
+                  infoTooltipMessage={tooltipInfoMessages.rfv}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="area"
+                  data={data}
+                  dataKey={["treasuryGuitaDAIPOL"]}
+                  stopColor={[["rgba(128, 204, 131, 1)", "rgba(128, 204, 131, 0)"]]}
+                  headerText="Protocol Owned Liquidity PAPA-MIM"
+                  headerSubText={`${data && trim(data[0].treasuryGuitaDAIPOL, 2)}% `}
+                  dataFormat="percent"
+                  bulletpointColors={bulletpoints.pol}
+                  itemNames={tooltipItems.pol}
+                  itemType={itemType.percentage}
+                  infoTooltipMessage={tooltipInfoMessages.pol}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                  isPOL={true}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="area"
+                  data={staked}
+                  dataKey={["staked"]}
+                  stopColor={[["#55EBC7", "#47ACEB"]]}
+                  headerText="GUITA Staked"
+                  dataFormat="percent"
+                  headerSubText={`${staked && trim(staked[0].staked, 2)}% `}
+                  isStaked={true}
+                  bulletpointColors={bulletpoints.staked}
+                  infoTooltipMessage={tooltipInfoMessages.staked}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid item lg={6} md={6} sm={12} xs={12}>
+              <Paper className="guita-card guita-chart-card">
+                <Chart
+                  type="line"
+                  data={runway}
+                  dataKey={["runwayCurrent"]}
+                  color={theme.palette.text.primary}
+                  stroke={[theme.palette.text.primary]}
+                  headerText="Runway Available"
+                  headerSubText={`${data && trim(data[0].runwayCurrent, 1)} Days`}
+                  dataFormat="days"
+                  bulletpointColors={bulletpoints.runway}
+                  itemNames={tooltipItems.runway}
+                  itemType={""}
+                  infoTooltipMessage={tooltipInfoMessages.runway}
+                  expandedGraphStrokeColor={theme.palette.graphStrokeColor}
+                />
+              </Paper>
+            </Grid>
+          </Grid>
+        </Zoom>
       </Container>
     </div>
   );
